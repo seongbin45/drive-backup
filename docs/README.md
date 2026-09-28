@@ -1,14 +1,17 @@
+
+Languages: [English](./README.md) | [한국어](./README.kr.md)
+
 # docs
 
-drive-backup 프로젝트의 문서 디렉터리입니다.
+Documentation directory for the drive-backup project.
 
-## 하위 구조
+## Subdirectories
 
-| 디렉터리 | 설명 |
+| Directory | Description |
 |---|---|
-| [WORK-LOG](./WORK-LOG/) | AI 어시스턴트(Claude, Gemini)와 함께 진행한 개발 작업 로그 아카이브 |
+| [WORK-LOG](./WORK-LOG/) | Archive of development work logs conducted with AI assistants (Claude, Gemini) |
 
-## 이 디렉터리의 역할
+## Purpose of This Directory
 
-- 백업 스크립트(`Tools/`)의 설계 결정, 디버깅 과정, 교차검증 기록 등 **코드에 남지 않는 맥락**을 보존합니다.
-- 새로운 기능을 추가하거나 설계를 변경할 때, 과거 작업 로그를 참조하면 당시의 의사결정 근거를 확인할 수 있습니다.
+- Preserves **context that doesn't live in code**: design decisions, debugging processes, and cross-verification records for the backup scripts (`Tools/`).
+- When adding new features or changing the design, past work logs can be referenced to confirm the rationale behind decisions made at the time.

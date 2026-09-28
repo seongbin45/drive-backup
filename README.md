@@ -1,70 +1,73 @@
+
+Languages: [English](README.md) | [한국어](README.kr.md)
+
 # drive-backup
 
-USB / 외장 HDD·SSD를 꽂으면 자동으로 감지해 로컬 디스크에 백업하고, 백업 이력을 Git 커밋으로 누적 관리하는 Windows 자동 백업 프로젝트입니다.
+A Windows automated backup project that automatically detects USB / external HDD/SSD drives when plugged in, backs them up to a local disk, and accumulates backup history via Git commits.
 
-## 개요
+## Overview
 
-- **자동 감지**: 이동식/고정식 드라이브가 연결되면 자동으로 백업 대상인지 판별합니다.
-- **백그라운드 자동 백업**: Windows 작업 스케줄러 기반으로 5분 주기 무인 실행됩니다.
-- **Git 이력 관리**: 백업본 폴더가 Git 저장소로 관리되어 삭제·변경 이력을 과거 시점으로 되돌릴 수 있습니다.
-- **중단 후 재개**: robocopy 재개 기능으로 백업 도중 장치를 뽑아도 다시 꽂으면 이어서 진행됩니다.
-- **검증**: 메타데이터(크기/수정시각) 대조 및 SHA-256 해시 대조로 백업본과 원본의 일치 여부를 확인합니다.
-- **시스템 볼륨 자동 제외**: Windows 설치 볼륨, 부팅 파티션, 복구/설치 미디어, Linux 루트 파일시스템은 실제 시스템 파일 시그니처로 판정해 백업 대상에서 자동으로 걸러냅니다.
+- **Automatic detection**: When a removable/fixed drive is connected, it automatically determines whether it is a backup target.
+- **Background auto-backup**: Runs unattended on a 5-minute interval via Windows Task Scheduler.
+- **Git history management**: Each backup folder is managed as a Git repository, so deletion/change history can be rolled back to a past point in time.
+- **Resume after interruption**: Thanks to robocopy's resume capability, if the device is unplugged mid-backup, copying continues where it left off when reconnected.
+- **Verification**: Confirms whether backup copies match the originals by comparing metadata (size/modified time) and SHA-256 hashes.
+- **Automatic system volume exclusion**: Windows installation volumes, boot partitions, recovery/install media, and Linux root filesystems are detected via actual system file signatures and automatically filtered out of backup targets.
 
-## 디렉터리 구조
+## Directory Structure
 
 ```
 drive-backup/
-├── README.md            <- 이 파일 (프로젝트 개요)
-├── Tools/               <- 백업 자동화 PowerShell 스크립트
-│   ├── AutoDriveBackup.ps1        <- 핵심 백업/감시/검증 스크립트
-│   ├── Register-AutoBackupTask.ps1 <- 작업 스케줄러 등록 스크립트
-│   └── README.md                  <- Tools 운영상 주의사항 및 알려진 위험
-└── docs/                <- 프로젝트 문서
-    └── WORK-LOG/        <- AI 어시스턴트와의 개발 작업 로그
+├── README.md            <- This file (project overview)
+├── Tools/               <- Backup automation PowerShell scripts
+│   ├── AutoDriveBackup.ps1        <- Core backup/watch/verify script
+│   ├── Register-AutoBackupTask.ps1 <- Task Scheduler registration script
+│   └── README.md                  <- Tools operational cautions and known risks
+└── docs/                <- Project documentation
+    └── WORK-LOG/        <- Development work logs with AI assistants
 ```
 
-## 요구 사항
+## Requirements
 
-- Windows 10/11, **Windows PowerShell 5.1** 이상
-- [Git for Windows](https://git-scm.com) (커밋 이력 기능에 필요)
-- 스크립트 파일은 반드시 **UTF-8 with BOM**으로 저장할 것 (BOM이 없으면 PowerShell 5.1이 CP949로 잘못 읽어 구문 오류 발생)
+- Windows 10/11, **Windows PowerShell 5.1** or later
+- [Git for Windows](https://git-scm.com) (required for the commit history feature)
+- Script files must be saved as **UTF-8 with BOM** (without BOM, PowerShell 5.1 misreads them as CP949, causing syntax errors)
 
-## 빠른 시작
+## Quick Start
 
 ```powershell
-# 1. 실행 정책 허용 (현재 사용자에 한함)
+# 1. Allow script execution (current user only)
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 
-# 2. 어떤 드라이브가 백업 대상인지 스캔 (아무것도 변경하지 않음)
+# 2. Scan which drives are backup targets (changes nothing)
 powershell -NoProfile -ExecutionPolicy Bypass -File Tools\AutoDriveBackup.ps1 -Mode Scan
 
-# 3. 관리자 권한 PowerShell에서 작업 스케줄러 등록 (5분 주기 자동 백업)
+# 3. Register with Task Scheduler from an elevated PowerShell (auto-backup every 5 minutes)
 .\Tools\Register-AutoBackupTask.ps1
 
-# 4. 상태 확인
+# 4. Check status
 powershell -NoProfile -ExecutionPolicy Bypass -File Tools\AutoDriveBackup.ps1 -Mode Status
 ```
 
-## 백업 결과물 구조 (기본값 `C:\DriveBackup`)
+## Backup Output Structure (default: `C:\DriveBackup`)
 
 ```
 C:\DriveBackup\
-├── O_\                  <- O: 드라이브 백업본 (Git 저장소)
-├── E_\                  <- E: 드라이브 백업본 (Git 저장소)
-└── _meta\               <- 상태/로그/매니페스트 (백업본 밖에 둠)
-    ├── watcher.log      <- 감시/실행 로그
+├── O_\                  <- O: drive backup (Git repository)
+├── E_\                  <- E: drive backup (Git repository)
+└── _meta\               <- State/logs/manifests (kept outside backups)
+    ├── watcher.log      <- Watch/execution log
     └── O_\
-        ├── backup_state.json   <- 재개/상태 정보
-        ├── manifest.json       <- 지난 백업 완료 시점의 파일 목록
-        ├── robocopy_*.log      <- 복사 로그
-        └── verify_*.csv        <- 검증 결과 상세 내역
+        ├── backup_state.json   <- Resume/state info
+        ├── manifest.json       <- File list at last completed backup
+        ├── robocopy_*.log      <- Copy logs
+        └── verify_*.csv        <- Detailed verification results
 ```
 
-## ⚠️ 알려진 주요 위험
+## ⚠️ Key Known Risks
 
-> 상세한 내용은 `Tools/README.md`를 반드시 읽어보세요.
+> Be sure to read `Tools/README.md` for details.
 
-1. **드라이브 문자 기반 폴더명**: USB를 여러 개 바꿔 쓰면 같은 문자를 배정받아 백업본이 섞일 수 있습니다. 볼륨 시리얼 기반 폴더 전환이 예정된 개선 사항입니다.
-2. **`-Mirror` 옵션 주의**: 삭제 전파를 켜면 다른 장치가 같은 문자를 배정받았을 때 기존 백업본이 통째로 삭제될 수 있습니다. 기본값(삭제 전파 안 함) 사용을 권장합니다.
-3. **로그 무한 증가**: 로그 회전 로직이 없어 `watcher.log`와 `robocopy_*.log`가 계속 쌓입니다.
+1. **Drive-letter-based folder names**: If you swap between multiple USB devices, they may be assigned the same drive letter and their backups can get mixed together. Migration to volume-serial-based folders is a planned improvement.
+2. **Caution with `-Mirror` option**: If deletion propagation is enabled and another device is assigned the same drive letter, the existing backup may be wiped entirely. Using the default (no deletion propagation) is recommended.
+3. **Unbounded log growth**: There is no log rotation logic, so `watcher.log` and `robocopy_*.log` keep accumulating.
