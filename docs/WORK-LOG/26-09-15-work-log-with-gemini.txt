@@ -1,0 +1,814 @@
+Export Conversation
+https://gemini.google.com/gem/coding-partner/4833fcf52195a773
+Date: September 15, 2026 at 03:26 AM
+Exported: September 29, 2026 at 06:29 AM
+Size: 33,633 characters  ·  8,077 words  ·  16 messages
+
+========================================
+
+[USER]  (Sep 15, 2026, 12:21 AM):
+```
+백업 루트가 있는 드라이브 문자 (예: C) - 이 드라이브는 백업 대상에서 제외
+$RootDriveLetter = ([System.IO.Path]::GetPathRoot((Resolve-Path -LiteralPath $BackupRoot -ErrorAction SilentlyContinue).Path ?? $BackupRoot)).TrimEnd('\').TrimEnd(':')
+if (-not $RootDriveLetter) { $RootDriveLetter = ($BackupRoot.Substring(0,1)) }
+```
+```
+백업 루트가 있는 드라이브 문자 (예: C) - 이 드라이브는 백업 대상에서 제외
+$RootDriveLetter = ([System.IO.Path]::GetPathRoot((Resolve-Path -LiteralPath $BackupRoot -ErrorAction SilentlyContinue).Path ?? $BackupRoot)).TrimEnd('\').TrimEnd(':')
+if (-not $RootDriveLetter) { $RootDriveLetter = ($BackupRoot.Substring(0,1)) }
+```
+```
+제공해주신 코드를 바탕으로 Windows PowerShell 5.1(기본 내장 버전)에서 에러 없이 정상 작동하도록 코드를 수정했습니다.
+?? 연산자를 제거하고, 인코딩 깨짐 문제를 방지할 수 있도록 다듬은 코드입니다. 기존 68~69번 줄을 지우시고 아래 코드로 교체해 주세요.
+🛠️ 호환성 수정 코드
+
+백업 루트가 있는 드라이브 문자 (예: C) - 이 드라이브는 백업 대상에서 제외
+$_resolved = (Resolve-Path -LiteralPath $BackupRoot -ErrorAction SilentlyContinue).Path
+$_targetPath = if ($_resolved -ne $null) { $_resolved } else { $BackupRoot }
+$RootDriveLetter = ([System.IO.Path]::GetPathRoot($_targetPath)).TrimEnd('\').TrimEnd(':')if (-not $RootDriveLetter) { $RootDriveLetter = ($BackupRoot.Substring(0,1)) }
+
+💡 조치 후 필수 작업 (중요)
+이전 답변에서 말씀드린 것처럼 한글 깨짐 문제가 함께 해결되어야 스크립트가 멈추지 않습니다. 코드를 붙여넣으신 후 반드시 아래 단계를 진행해 주세요.
+
+   1. 스크립트 파일을 메모장 또는 VS Code로 엽니다.
+   2. 상단 수정을 반영한 뒤 [다른 이름으로 저장]을 누릅니다.
+   3. 저장 버튼 왼쪽에 있는 인코딩 옵션을 UTF-8(BOM 포함) (또는 시그니처가 있는 UTF-8)으로 선택하고 저장합니다.
+
+인코딩을 UTF-8 with BOM으로 저장한 뒤 다시 실행했을 때 또 다른 줄번호에서 에러가 발생하거나 여전히 구문 오류가 뜨는지 알려주세요. 남은 에러를 바로 잡아드리겠습니다.
+```
+교차검증 요청. 그리고 드라이브 이름(O:\, E:\ 등)\(이 위치) 에 "windows" 폴더나  "C:\Program Files (x86)" 등 시스템 디렉터리가 있는경우. 백업대상에서 제외.
+
+[GEMINI]  (Sep 15, 2026, 12:21 AM):
+제시된 코드의 마지막 줄에 문법 오류가 있습니다. .TrimEnd(':')if (-not... 처럼 코드가 띄어쓰기나 줄바꿈 없이 붙어 있으면 PowerShell에서 구문 오류(Syntax Error)가 발생합니다. 반드시 줄을 바꿈하거나 세미콜론(;)으로 구분해야 합니다. 
+
+이 오타를 제외하면, ?? 연산자를 if-else 구문으로 대체한 방식은 PowerShell 5.1 호환성을 확보하기 위한 올바른 접근입니다.
+
+새로 요청하신 '시스템 디렉터리가 존재하는 드라이브 제외' 요구사항에 대한 해결 방안입니다.
+
+현재 부팅된 OS 드라이브(C:\) 외에도 과거에 OS가 설치되었거나 시스템 폴더가 남아있는 다른 드라이브(E:\, O:\ 등)를 백업에서 제외하려면, 단순히 드라이브 문자만 보는 것이 아니라 드라이브 루트 경로의 내부 폴더 구조를 검사해야 합니다.
+
+권장하는 검증 로직:
+1. 백업할 드라이브 목록을 순회할 때, 각 드라이브의 루트 경로(예: E:\)를 조합합니다.
+2. Test-Path 명령어를 사용해 해당 경로 하위에 Windows, Program Files, Program Files (x86) 중 하나라도 존재하는지 검사합니다.
+3. 조건에 하나라도 부합하면 해당 드라이브는 OS 종속 파일이 있는 것으로 간주하고 목록에서 제외(continue 등으로 스킵)합니다.
+
+코드 적용을 위해 확인이 필요한 부분:
+현재 작성 중인 스크립트에서 백업 대상이 될 '드라이브 목록'을 수집하고 반복하는 부분(예: Get-PSDrive, Get-Volume 또는 foreach 루프)이 어떻게 구성되어 있습니까? 
+
+해당 부분을 공유해 주시면, 전체 코드를 재작성하는 대신 기존 루프 안에 시스템 폴더를 감지하여 안전하게 걸러내는 필터링 조건문(Snippet)을 어떻게 삽입할지 함께 맞춰보겠습니다.
+
+[USER]  (Sep 15, 2026, 02:55 AM):
+PS D:\Tools> .\Register-AutoBackupTask.ps1
+.\Register-AutoBackupTask.ps1 : 이 시스템에서 스크립트를 실행할 수 없으므로 D:\Tools\Register-AutoBackupTask.ps1 파일을
+ 로드할 수 없습니다. 자세한 내용은 about_Execution_Policies(https://go.microsoft.com/fwlink/?LinkID=135170)를 참조하십
+시오.
+위치 줄:1 문자:1
+- .\Register-AutoBackupTask.ps1
+- ~~~~~~~~~
+    + CategoryInfo          : 보안 오류: (:) [], PSSecurityException
+    + FullyQualifiedErrorId : UnauthorizedAccess
+
+[GEMINI]  (Sep 15, 2026, 02:55 AM):
+이 오류는 Windows PowerShell의 기본 보안 설정(실행 정책, Execution Policy)이 스크립트 파일(.ps1)의 실행을 차단하고 있기 때문에 발생합니다. 
+
+이 문제를 해결하려면 스크립트 실행 권한을 변경해야 합니다.
+
+해결 방법:
+PowerShell 터미널에 아래 명령어를 입력하고 Enter를 누르세요. 확인 프롬프트가 나타나면 Y를 입력하시면 됩니다.
+
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+- 설명: 이 명령어는 현재 사용자 환경에 한해 로컬에 저장된 스크립트 실행을 허용합니다. 
+
+위 명령어를 적용한 후 스크립트를 다시 실행해 보시기 바랍니다. 
+
+실행 권한 문제가 해결되고 나면, 이전에 논의했던 '시스템 폴더(Windows, Program Files 등)가 포함된 드라이브를 백업 대상에서 제외하는 로직'을 적용해야 합니다. 해당 필터링을 정확한 위치에 추가할 수 있도록, 현재 스크립트에서 백업할 드라이브 목록을 가져오는 부분(예: Get-Volume, Get-PSDrive 등이 포함된 루프문)의 코드를 공유해 주시기 바랍니다.
+
+[USER]  (Sep 15, 2026, 02:59 AM):
+Register-ScheduledTask : 작업 XML에 형식이 잘못되었거나 범위를 벗어난 값이 있습니다.
+(10,42):Duration:P99999999DT23H59M59S
+위치 D:\Tools\Register-AutoBackupTask.ps1:143 문자:5
++     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigg ...
++     ~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PS_ScheduledTask:Root/Microsoft/...S_ScheduledTask) [Register-ScheduledTa
+   sk], CimException
+    + FullyQualifiedErrorId : HRESULT 0x80041318,Register-ScheduledTask
+
+등록 완료: 'AutoDriveBackup'
+  로그온유형 : S4U (RunLevel Highest)
+  실행       : powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "D:\Tools\AutoDriveBackup.ps1" -Mode BackupNow -BackupRoot "D:\DriveBackup"
+  주기       : 5 분, 무기한
+  트리거     : 컴퓨터 시작 / 로그온 / 잠금 해제
+  중복 실행  : IgnoreNew
+
+시험 실행 : Start-ScheduledTask -TaskName 'AutoDriveBackup'
+실행 결과 : Get-ScheduledTask -TaskName 'AutoDriveBackup' | Get-ScheduledTaskInfo
+동작 로그 : Get-Content 'D:\DriveBackup\_meta\watcher.log' -Tail 30
+PS D:\Tools>
+
+[GEMINI]  (Sep 15, 2026, 02:59 AM):
+오류의 원인은 트리거를 생성할 때 -RepetitionDuration 값에 작업 스케줄러 XML 스키마가 허용하는 최대치를 초과하는 너무 큰 값(예: 99,999,999일)을 할당했기 때문입니다.
+
+작업 스케줄러에서 "무기한(Indefinitely)" 반복을 설정하기 위한 해결 방안은 크게 두 가지입니다.
+
+1. Duration 속성을 빈 값으로 덮어쓰기 (권장): 
+   New-ScheduledTaskTrigger로 트리거 객체를 먼저 생성한 뒤, Register-ScheduledTask에 넘기기 직전에 $trigger.Repetition.Duration = "" 또는 $null로 강제 수정하는 방식입니다. 이 방식이 Windows 작업 스케줄러 UI에서 '무기한'을 선택했을 때 생성되는 실제 XML 구조와 가장 일치합니다.
+2. 현실적인 최대치 할당 (우회): 
+   -RepetitionDuration (New-TimeSpan -Days 3650)처럼 약 10년 정도의 허용 가능한 값을 지정하는 방식입니다.
+
+현재 D:\Tools\Register-AutoBackupTask.ps1 스크립트에서 트리거($trigger 등)를 생성하는 부분(New-ScheduledTaskTrigger가 쓰인 곳)의 코드가 어떻게 작성되어 있습니까? 해당 부분을 공유해 주시면 위 방안 중 하나를 적용할 구체적인 로직을 함께 짜보겠습니다.
+
+[USER]  (Sep 15, 2026, 03:01 AM):
+```
+#requires -Version 5.1
+<#
+====================================================================
+ Register-AutoBackupTask.ps1
+ AutoDriveBackup.ps1 을 작업 스케줄러에 등록한다.
+
+ [실행 방식]
+   - 최고 권한(Highest) + S4U 로그온 유형 -> 세션 0 에서 실행되므로
+     콘솔 창이 전혀 뜨지 않는다. (-WindowStyle Hidden 은 창이 깜빡일 수 있음)
+   - -Mode BackupNow (상주 감시가 아니라 1회 실행). 매 5분 반복이 감시를 대신한다.
+     상주 프로세스가 없으므로 죽어도 다음 주기에 스스로 복구된다.
+
+ [트리거]
+   - 컴퓨터 시작 시
+   - 로그온 시
+   - 워크스테이션 잠금 해제 시
+   - 위 각각에 대해 5분 간격 무기한 반복
+
+ [사용법]  관리자 권한 PowerShell 에서
+   등록:     .\Register-AutoBackupTask.ps1
+   즉시실행: Start-ScheduledTask -TaskName 'AutoDriveBackup'
+   상태:     Get-ScheduledTask -TaskName 'AutoDriveBackup' | Get-ScheduledTaskInfo
+   해제:     Unregister-ScheduledTask -TaskName 'AutoDriveBackup' -Confirm:$false
+
+ ※ 이 파일도 UTF-8 with BOM 으로 저장할 것.
+====================================================================
+#>
+param(
+    [string]$TaskName        = 'AutoDriveBackup',
+    [string]$ScriptPath      = (Join-Path $PSScriptRoot 'AutoDriveBackup.ps1'),
+    [string]$BackupRoot      = 'D:\DriveBackup',
+    [int]$IntervalMinutes    = 5,
+    [string[]]$ExcludeDrives = @(),
+    [switch]$Mirror,
+    [switch]$UseInteractive   # S4U 등록이 실패할 때만 사용 (로그온 중에만 동작)
+)
+
+$ErrorActionPreference = 'Stop'
+
+---- 사전 검사 -----------------------------------------------------
+$id = [Security.Principal.WindowsIdentity]::GetCurrent()
+if (-not (New-Object Security.Principal.WindowsPrincipal $id).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "관리자 권한 PowerShell 에서 실행하세요." -ForegroundColor Red
+    exit 1
+}
+
+$resolved = (Resolve-Path -LiteralPath $ScriptPath -ErrorAction SilentlyContinue).Path
+if (-not $resolved) {
+    Write-Host "AutoDriveBackup.ps1 을 찾을 수 없습니다. -ScriptPath 로 지정하세요." -ForegroundColor Red
+    exit 1
+}
+$ScriptPath = $resolved
+
+등록 전에 구문 검사 - 깨진 스크립트를 스케줄러에 올리면 5분마다 조용히 실패만 반복한다
+$perr = $null
+[System.Management.Automation.Language.Parser]::ParseFile($ScriptPath, [ref]$null, [ref]$perr) | Out-Null
+if ($perr) {
+    Write-Host "스크립트에 구문 오류가 있어 등록을 중단합니다:" -ForegroundColor Red
+    $perr | ForEach-Object { Write-Host ("  {0}행: {1}" -f $.Extent.StartLineNumber, $.Message) }
+    exit 1
+}
+
+$head = [System.IO.File]::ReadAllBytes($ScriptPath)
+if ($head.Length -lt 3 -or -not ($head[0] -eq 239 -and $head[1] -eq 187 -and $head[2] -eq 191)) {
+    Write-Host "경고: UTF-8 BOM 이 없습니다. PowerShell 5.1 이 CP949 로 잘못 읽어 한글이 깨질 수 있습니다." -ForegroundColor Yellow
+}
+
+---- Action --------------------------------------------------------
+$argLine = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$ScriptPath" " +
+           "-Mode BackupNow -BackupRoot "$BackupRoot""
+if ($ExcludeDrives.Count) { $argLine += " -ExcludeDrives $($ExcludeDrives -join ',')" }
+if ($Mirror)              { $argLine += " -Mirror" }
+
+$action = New-ScheduledTaskAction `
+    -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
+    -Argument $argLine -WorkingDirectory (Split-Path $ScriptPath)
+
+---- 반복 설정(무기한) ---------------------------------------------
+PS 5.1 에서는 -RepetitionDuration 에 무한대를 직접 못 주는 빌드가 있어
+임시 트리거에서 Repetition 객체만 빼내 재사용한다.
+function New-InfiniteRepetition([int]$Minutes) {
+    try {
+        (New-ScheduledTaskTrigger -Once -At (Get-Date) `
+            -RepetitionInterval (New-TimeSpan -Minutes $Minutes) `
+            -RepetitionDuration ([TimeSpan]::MaxValue)).Repetition
+    } catch {
+        (New-ScheduledTaskTrigger -Once -At (Get-Date) `
+            -RepetitionInterval (New-TimeSpan -Minutes $Minutes) `
+            -RepetitionDuration (New-TimeSpan -Days 9999)).Repetition
+    }
+}
+$rep = New-InfiniteRepetition $IntervalMinutes
+
+$userId = "$env:USERDOMAIN\$env:USERNAME"
+
+$triggers = New-Object System.Collections.Generic.List[object]
+
+$tBoot = New-ScheduledTaskTrigger -AtStartup
+$tBoot.Delay = 'PT2M'            # 부팅 직후 디스크 혼잡 회피
+$triggers.Add($tBoot)
+
+$tLogon = New-ScheduledTaskTrigger -AtLogOn -User $userId
+$tLogon.Delay = 'PT1M'
+$triggers.Add($tLogon)
+
+잠금 해제 트리거는 cmdlet 에 없으므로 CIM 클래스로 직접 만든다 (StateChange 8 = SessionUnlock)
+try {
+    $cls = Get-CimClass -ClassName MSFT_TaskSessionStateChangeTrigger `
+                        -Namespace Root/Microsoft/Windows/TaskScheduler
+    $tUnlock = New-CimInstance -CimClass $cls -ClientOnly
+    $tUnlock.StateChange = 8
+    $tUnlock.UserId      = $userId
+    $tUnlock.Enabled     = $true
+    $triggers.Add($tUnlock)
+} catch {
+    Write-Host "잠금 해제 트리거 생성 실패(무시하고 계속): $($.Exception.Message)" -ForegroundColor Yellow
+}
+
+foreach ($t in $triggers) { $t.Repetition = $rep }
+
+---- Settings ------------------------------------------------------
+MultipleInstances = IgnoreNew 가 핵심.
+백업이 5분보다 오래 걸릴 때 프로세스가 겹쳐 쌓이는 것을 막는다.
+$settings = New-ScheduledTaskSettingsSet `
+    -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+    -StartWhenAvailable `
+    -MultipleInstances IgnoreNew `
+    -ExecutionTimeLimit (New-TimeSpan -Hours 4) `
+    -RestartCount 2 -RestartInterval (New-TimeSpan -Minutes 5) `
+    -Priority 7
+
+---- Principal -----------------------------------------------------
+$principal = if ($UseInteractive) {
+    New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Highest
+} else {
+    New-ScheduledTaskPrincipal -UserId $userId -LogonType S4U -RunLevel Highest
+}
+
+---- 등록 ----------------------------------------------------------
+$desc = "USB/외장 스토리지 자동 Git 백업 ($IntervalMinutes 분 주기)"
+try {
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $triggers `
+        -Principal $principal -Settings $settings -Force -Description $desc | Out-Null
+    $mode = if ($UseInteractive) { 'Interactive' } else { 'S4U' }
+} catch {
+    if ($UseInteractive) { throw }
+    Write-Host "S4U 등록 실패 - Interactive 로 재시도: $($.Exception.Message)" -ForegroundColor Yellow
+    $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Highest
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $triggers `
+        -Principal $principal -Settings $settings -Force -Description $desc | Out-Null
+    $mode = 'Interactive'
+    Write-Host "Interactive 등록됨: 로그온 중에만 동작하고 창이 잠깐 보일 수 있습니다." -ForegroundColor Yellow
+}
+
+Write-Host "등록 완료: '$TaskName'" -ForegroundColor Green
+Write-Host "  로그온유형 : $mode (RunLevel Highest)"
+Write-Host "  실행       : powershell.exe $argLine"
+Write-Host "  주기       : $IntervalMinutes 분, 무기한"
+Write-Host "  트리거     : 컴퓨터 시작 / 로그온 / 잠금 해제"
+Write-Host "  중복 실행  : IgnoreNew"
+Write-Host ""
+Write-Host "시험 실행 : Start-ScheduledTask -TaskName '$TaskName'"
+Write-Host "실행 결과 : Get-ScheduledTask -TaskName '$TaskName' | Get-ScheduledTaskInfo"
+Write-Host "동작 로그 : Get-Content '$BackupRoot\_meta\watcher.log' -Tail 30"
+```
+
+[GEMINI]  (Sep 15, 2026, 03:01 AM):
+말씀해 주신 작업 스케줄러 XML 에러의 원인은 정확하게 짚어주셨습니다. Register-ScheduledTask 명령어가 트리거의 무기한 반복 값을 처리하는 과정에서 9999일([TimeSpan]::MaxValue 또는 너무 큰 값)을 허용 범위를 초과하는 형식으로 변환하여 XML에 기록하려다 발생한 문제입니다.
+
+기존 코드에서 오류를 유발하는 New-InfiniteRepetition 함수와 $rep 할당 부분을 수정하여, XML 스키마에 완전히 부합하는 방식(값을 비워 무기한으로 설정)으로 해결 방안을 제시합니다.
+
+해결 방안: 빈 값을 통한 '무기한' 설정
+
+작업 스케줄러에서 무기한 반복을 설정하는 가장 안정적인 방법은 트리거 객체 생성 후 Duration 속성에 값을 할당하지 않거나 빈 문자열/Null로 지정하는 것입니다. 그러나 일부 구형 빌드의 New-ScheduledTaskTrigger cmdlet 동작 방식 차이 때문에 가장 깔끔한 방법은 트리거 생성 시 -RepetitionDuration 파라미터를 아예 생략하는 것입니다.
+
+기존 코드를 분석해 본 결과, New-InfiniteRepetition 함수를 굳이 사용할 필요 없이 개별 트리거를 생성할 때 RepetitionInterval만 설정해 주는 것이 훨씬 안전합니다.
+
+변경할 코드 로직:
+
+기존의 트리거 생성 부분(69행~93행 부근)을 다음과 같이 수정합니다. -RepetitionDuration 파라미터를 완전히 제거하고, 반복 주기(-RepetitionInterval)만 명시합니다.
+
+```powershell
+---- 반복 설정(무기한) 및 트리거 생성 ---------------------------------------------
+$interval = New-TimeSpan -Minutes $IntervalMinutes
+$userId = "$env:USERDOMAIN\$env:USERNAME"
+
+$triggers = New-Object System.Collections.Generic.List[object]
+
+1. 시스템 부팅 시 트리거
+$tBoot = New-ScheduledTaskTrigger -AtStartup -RepetitionInterval $interval
+$tBoot.Delay = 'PT2M'            # 부팅 직후 디스크 혼잡 회피
+$triggers.Add($tBoot)
+
+2. 사용자 로그온 시 트리거
+$tLogon = New-ScheduledTaskTrigger -AtLogOn -User $userId -RepetitionInterval $interval
+$tLogon.Delay = 'PT1M'
+$triggers.Add($tLogon)
+
+3. 잠금 해제 트리거 (CIM 인스턴스 직접 생성)
+try {
+    $cls = Get-CimClass -ClassName MSFT_TaskSessionStateChangeTrigger `
+                        -Namespace Root/Microsoft/Windows/TaskScheduler
+    $tUnlock = New-CimInstance -CimClass $cls -ClientOnly
+    $tUnlock.StateChange = 8  # SessionUnlock
+    $tUnlock.UserId      = $userId
+    $tUnlock.Enabled     = $true
+    
+CIM 인스턴스에 Repetition 설정
+    $repObj = New-CimInstance -ClassName MSFT_TaskRepetitionPattern -ClientOnly -Namespace Root/Microsoft/Windows/TaskScheduler
+    $repObj.Interval = "PT$($IntervalMinutes)M"
+Duration을 명시하지 않으면 무기한(Indefinitely)으로 설정됨
+    $tUnlock.Repetition = $repObj
+    
+    $triggers.Add($tUnlock)
+} catch {
+    Write-Host "잠금 해제 트리거 생성 실패(무시하고 계속): $($_.Exception.Message)" -ForegroundColor Yellow
+}
+```
+
+설명 및 추론 과정:
+
+1.  New-ScheduledTaskTrigger를 사용할 때 -RepetitionDuration을 생략하면 기본 동작으로 XML 스키마에 <Duration> 노드가 생성되지 않거나 무기한으로 해석되는 빈 구조가 됩니다.
+2.  이전 방식에서 [TimeSpan]::MaxValue나 New-TimeSpan -Days 9999를 억지로 구겨 넣으려다 보니 P99999999DT... 형태의 비정상적인 XML 문자열이 생성되어 Register-ScheduledTask에서 구문 분석 오류가 발생한 것입니다.
+3.  CIM을 통해 직접 만든 잠금 해제 트리거의 경우, MSFT_TaskRepetitionPattern 객체를 별도로 생성하여 Interval 값만 넣어주고 Duration은 건드리지 않음으로써 동일한 '무기한' 효과를 달성합니다.
+
+시스템 디렉터리 필터링 (이전 요청 사항 연결)
+
+이전에 논의했던 "드라이브에 시스템 폴더가 있으면 백업 제외" 로직은 스케줄러 등록 스크립트(Register-AutoBackupTask.ps1)가 아닌, 실제 백업을 수행하는 AutoDriveBackup.ps1 파일 내에 들어가야 합니다. 등록 스크립트는 단순히 스케줄러에 등록하는 역할만 하기 때문입니다. 
+
+위 수정 사항을 Register-AutoBackupTask.ps1에 적용하여 스케줄러 등록 문제를 먼저 해결한 후, AutoDriveBackup.ps1 파일 내용을 공유해 주시면 이어서 필터링 로직을 작성해 드리겠습니다.
+
+[USER]  (Sep 15, 2026, 03:13 AM):
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+새로운 크로스 플랫폼 PowerShell 사용 https://aka.ms/pscore6
+
+PS C:\WINDOWS\system32> D:\Tools
+D:\Tools : 'D:\Tools' 용어가 cmdlet, 함수, 스크립트 파일 또는 실행할 수 있는 프로그램 이름으로 인식되지 않습니다. 이름
+이 정확한지 확인하고 경로가 포함된 경우 경로가 올바른지 검증한 다음 다시 시도하십시오.
+위치 줄:1 문자:1
+- D:\Tools
+- ~~
+    + CategoryInfo          : ObjectNotFound: (D:\Tools:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\WINDOWS\system32> cd D:\Tools
+PS D:\Tools>
+>> Unblock-File -LiteralPath C:\Tools\AutoDriveBackup.ps1
+PS D:\Tools> Unblock-File -LiteralPath C:\Tools\Register-AutoBackupTask.ps1
+PS D:\Tools>
+>> Unblock-File -LiteralPath D:\Tools\AutoDriveBackup.ps1
+PS D:\Tools> Unblock-File -LiteralPath D:\Tools\Register-AutoBackupTask.ps1
+PS D:\Tools> Get-Item C:\Tools\AutoDriveBackup.ps1 -Stream Zone.Identifier -ErrorAction SilentlyContinue
+PS D:\Tools> .\Register-AutoBackupTask.ps1
+.\Register-AutoBackupTask.ps1 : 이 시스템에서 스크립트를 실행할 수 없으므로 D:\Tools\Register-AutoBackupTask.ps1 파일을
+ 로드할 수 없습니다. 자세한 내용은 about_Execution_Policies(https://go.microsoft.com/fwlink/?LinkID=135170)를 참조하십
+시오.
+위치 줄:1 문자:1
+- .\Register-AutoBackupTask.ps1
+- ~~~~~~~
+    + CategoryInfo          : 보안 오류: (:) [], PSSecurityException
+    + FullyQualifiedErrorId : UnauthorizedAccess
+PS D:\Tools>
+
+[GEMINI]  (Sep 15, 2026, 03:13 AM):
+Unblock-File 명령어는 파일에 부여된 '웹에서 다운로드됨(Mark of the Web)' 속성만 제거할 뿐, 시스템 자체의 스크립트 실행 정책(Execution Policy)을 변경하지는 않습니다. 
+
+현재 PowerShell의 실행 정책이 스크립트 실행을 전면 차단(Restricted)하고 있기 때문에 발생하는 오류입니다. 현재 열려 있는 터미널 세션에서 스크립트를 실행할 수 있도록 아래 명령어를 입력하여 실행 정책을 우회해야 합니다.
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+```
+
+이 명령어는 현재 열려 있는 PowerShell 창에 한해서만 권한 제한을 풉니다. 명령어를 입력한 후 다시 .\Register-AutoBackupTask.ps1을 실행해 보십시오.
+
+[USER]  (Sep 15, 2026, 03:16 AM):
+```
+$action = New-ScheduledTaskAction `
+    -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
+    -Argument $argLine -WorkingDirectory (Split-Path $ScriptPath)
+```
+C 드라이브의 시스템 루트로 해야하지 않은가?
+
+[GEMINI]  (Sep 15, 2026, 03:16 AM):
+$env:SystemRoot를 사용하는 현재 방식이 C:\Windows 경로를 직접 하드코딩하는 것보다 더 유연하고 올바른 작성법입니다.
+
+하드코딩 대신 현재 구조를 유지해야 하는 이유는 두 가지입니다.
+
+1. 동적 환경 변수 활용 ($env:SystemRoot)
+   Windows 기본 설치 환경에서 $env:SystemRoot는 이미 C:\Windows를 가리킵니다. 이를 C:\Windows\...로 직접 지정하면, 듀얼 부팅이나 특수 환경처럼 OS가 D: 드라이브 등에 설치되었을 때 스케줄러 명령이 동작하지 않는 맹점이 생깁니다. 환경 변수를 사용하는 편이 예외 상황에 안전합니다.
+
+2. 작업 디렉터리(-WorkingDirectory)의 범위
+   작업 디렉터리를 C:\ 같은 시스템 루트로 변경하면, AutoDriveBackup.ps1 내부에서 상대 경로를 사용하거나 동일 위치의 설정 파일/모듈을 불러올 때 기준점이 C:\로 잡혀 파일 탐색 오류가 발생합니다. 스크립트가 위치한 경로(Split-Path $ScriptPath)를 작업 디렉터리로 지정해 두어야 실행 위치에 의존적인 코드 에러를 막을 수 있습니다.
+
+따라서 해당 $action 구문은 수정할 필요 없이 그대로 사용하는 것이 적절합니다. 
+
+현재 지정된 $ScriptPath 변수가 항상 절대 경로를 반환하도록 상단에서 검증되고 있는지 정도만 확인해 두면 됩니다.
+
+[USER]  (Sep 15, 2026, 03:22 AM):
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+새로운 크로스 플랫폼 PowerShell 사용 https://aka.ms/pscore6
+
+PS C:\WINDOWS\system32> D:\Tools
+D:\Tools : 'D:\Tools' 용어가 cmdlet, 함수, 스크립트 파일 또는 실행할 수 있는 프로그램 이름으로 인식되지 않습니다. 이름
+이 정확한지 확인하고 경로가 포함된 경우 경로가 올바른지 검증한 다음 다시 시도하십시오.
+위치 줄:1 문자:1
+- D:\Tools
+- ~~
+    + CategoryInfo          : ObjectNotFound: (D:\Tools:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\WINDOWS\system32> cd D:\Tools
+PS D:\Tools>
+>> Unblock-File -LiteralPath C:\Tools\AutoDriveBackup.ps1
+PS D:\Tools> Unblock-File -LiteralPath C:\Tools\Register-AutoBackupTask.ps1
+PS D:\Tools>
+>> Unblock-File -LiteralPath D:\Tools\AutoDriveBackup.ps1
+PS D:\Tools> Unblock-File -LiteralPath D:\Tools\Register-AutoBackupTask.ps1
+PS D:\Tools> Get-Item C:\Tools\AutoDriveBackup.ps1 -Stream Zone.Identifier -ErrorAction SilentlyContinue
+PS D:\Tools> .\Register-AutoBackupTask.ps1
+.\Register-AutoBackupTask.ps1 : 이 시스템에서 스크립트를 실행할 수 없으므로 D:\Tools\Register-AutoBackupTask.ps1 파일을
+ 로드할 수 없습니다. 자세한 내용은 about_Execution_Policies(https://go.microsoft.com/fwlink/?LinkID=135170)를 참조하십
+시오.
+위치 줄:1 문자:1
+- .\Register-AutoBackupTask.ps1
+- ~~~~~
+    + CategoryInfo          : 보안 오류: (:) [], PSSecurityException
+    + FullyQualifiedErrorId : UnauthorizedAccess
+PS D:\Tools> Set-ExecutionPolicy Bypass -Scope Process -Force
+PS D:\Tools> .\Register-AutoBackupTask.ps1
+Register-ScheduledTask : 작업 XML에 형식이 잘못되었거나 범위를 벗어난 값이 있습니다.
+(10,42):Duration:P99999999DT23H59M59S
+위치 D:\Tools\Register-AutoBackupTask.ps1:143 문자:5
++     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigg ...
++     ~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PS_ScheduledTask:Root/Microsoft/...S_ScheduledTask) [Register-ScheduledTa
+   sk], CimException
+    + FullyQualifiedErrorId : HRESULT 0x80041318,Register-ScheduledTask
+
+등록 완료: 'AutoDriveBackup'
+  로그온유형 : S4U (RunLevel Highest)
+  실행       : powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "D:\Tools\AutoDriveBackup.ps1" -Mode BackupNow -BackupRoot "D:\DriveBackup"
+  주기       : 5 분, 무기한
+  트리거     : 컴퓨터 시작 / 로그온 / 잠금 해제
+  중복 실행  : IgnoreNew
+
+시험 실행 : Start-ScheduledTask -TaskName 'AutoDriveBackup'
+실행 결과 : Get-ScheduledTask -TaskName 'AutoDriveBackup' | Get-ScheduledTaskInfo
+동작 로그 : Get-Content 'D:\DriveBackup\_meta\watcher.log' -Tail 30
+PS D:\Tools> Start-ScheduledTask -TaskName 'AutoDriveBackup'
+Start-ScheduledTask : 지정된 파일을 찾을 수 없습니다.
+위치 줄:1 문자:1
+- Start-ScheduledTask -TaskName 'AutoDriveBackup'
+- ~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (PS_ScheduledTask:Root/Microsoft/...S_ScheduledTask) [Start-ScheduledTas
+   k], CimException
+    + FullyQualifiedErrorId : HRESULT 0x80070002,Start-ScheduledTask
+
+PS D:\Tools> .\Register-AutoBackupTask.ps1
+New-ScheduledTaskTrigger : 지정한 명명된 매개 변수를 사용하여 매개 변수 집합을 확인할 수 없습니다.
+위치 D:\Tools\Register-AutoBackupTask.ps1:86 문자:10
+- $tBoot = New-ScheduledTaskTrigger -AtStartup -RepetitionInterval $int ...
++          ~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [New-ScheduledTaskTrigger], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : AmbiguousParameterSet,New-ScheduledTaskTrigger
+
+PS D:\Tools> .\Register-AutoBackupTask.ps1
+New-ScheduledTaskTrigger : 지정한 명명된 매개 변수를 사용하여 매개 변수 집합을 확인할 수 없습니다.
+위치 D:\Tools\Register-AutoBackupTask.ps1:86 문자:10
+- $tBoot = New-ScheduledTaskTrigger -AtStartup -RepetitionInterval $int ...
++          ~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [New-ScheduledTaskTrigger], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : AmbiguousParameterSet,New-ScheduledTaskTrigger
+
+PS D:\Tools>
+
+[GEMINI]  (Sep 15, 2026, 03:22 AM):
+두 가지 오류가 발생한 원인은 다음과 같습니다.
+
+1. AmbiguousParameterSet 에러: New-ScheduledTaskTrigger cmdlet은 -AtStartup이나 -AtLogOn 옵션을 사용할 때 -RepetitionInterval 파라미터를 동시에 지원하지 않습니다. -RepetitionInterval은 -Once 옵션과만 함께 사용할 수 있는 파라미터입니다.
+2. Start-ScheduledTask 0x80070002 에러: 앞선 Register-ScheduledTask 실행 시 XML 생성 에러가 발생하여 작업 스케줄러에 실제 등록이 실패했기 때문에 발생한 현상입니다.
+
+해결 방안 및 로직 구조
+
+PowerShell 5.1에서 부팅/로그온 트리거에 무기한 반복 주기를 올바르게 부여하려면, 트리거를 생성한 뒤 CIM 반복 패턴 객체(MSFT_TaskRepetitionPattern)를 생성하여 .Repetition 속성에 직접 넣어주어야 합니다. 이 방식을 사용하면 Duration 값이 생성되지 않아 XML 스키마 오류 없이 '무기한' 설정이 적용됩니다.
+
+수정 로직 (트리거 생성 부분 Snippet)
+
+Register-AutoBackupTask.ps1 파일 내의 트리거 생성 부분을 아래 로직 구조로 수정해야 합니다.
+
+```powershell
+1. 반복 패턴 CIM 객체 생성 (Duration을 설정하지 않으면 무기한 반복됨)
+$repObj = New-CimInstance -ClassName MSFT_TaskRepetitionPattern `
+                          -Namespace Root/Microsoft/Windows/TaskScheduler `
+                          -ClientOnly
+$repObj.Interval = "PT$($IntervalMinutes)M"  # 예: PT5M (5분 간격)
+
+$triggers = New-Object System.Collections.Generic.List[object]
+
+2. 부팅 트리거
+$tBoot = New-ScheduledTaskTrigger -AtStartup
+$tBoot.Delay = 'PT2M'
+$tBoot.Repetition = $repObj
+$triggers.Add($tBoot)
+
+3. 로그온 트리거
+$tLogon = New-ScheduledTaskTrigger -AtLogOn -User $userId
+$tLogon.Delay = 'PT1M'
+$tLogon.Repetition = $repObj
+$triggers.Add($tLogon)
+
+4. 잠금 해제 트리거
+try {
+    $cls = Get-CimClass -ClassName MSFT_TaskSessionStateChangeTrigger `
+                        -Namespace Root/Microsoft/Windows/TaskScheduler
+    $tUnlock = New-CimInstance -CimClass $cls -ClientOnly
+    $tUnlock.StateChange = 8  # SessionUnlock
+    $tUnlock.UserId      = $userId
+    $tUnlock.Enabled     = $true
+    $tUnlock.Repetition  = $repObj
+    $triggers.Add($tUnlock)
+} catch {
+    Write-Host "잠금 해제 트리거 생성 실패: $($_.Exception.Message)" -ForegroundColor Yellow
+}
+```
+
+적용 및 검증 단계
+
+1. Register-AutoBackupTask.ps1 파일에서 기존 트리거 생성 로직($triggers 관련 부분)을 위 방식으로 수정합니다.
+2. .\Register-AutoBackupTask.ps1을 다시 실행하여 XML 구문 오류 없이 정상 등록되는지 확인합니다.
+3. 등록 성공 후 Start-ScheduledTask -TaskName 'AutoDriveBackup'을 실행하여 0x80070002 오류가 사라졌는지 검증합니다.
+
+위 Snippet을 적용해보신 후 스케줄러 등록 결과나 추가 에러 여부를 알려주세요.
+
+[USER]  (Sep 15, 2026, 03:26 AM):
+```
+PS D:\Tools> .\Register-AutoBackupTask.ps1
+"Interval"을(를) 설정하는 동안 예외가 발생했습니다. "이 개체에 'Interval' 속성이 없습니다. 해당 속성이 있고 설정 가능한
+지 검증하십시오."
+위치 D:\Tools\Register-AutoBackupTask.ps1:84 문자:25
+- $repObj.Interval = "PT$($IntervalMinutes)M"  # 예: PT5M (5분 간격)
++                         ~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : ExceptionWhenSetting
+
+PS D:\Tools>
+```
+```
+#requires -Version 5.1
+<#
+====================================================================
+ Register-AutoBackupTask.ps1
+ AutoDriveBackup.ps1 을 작업 스케줄러에 등록한다.
+
+ [실행 방식]
+   - 최고 권한(Highest) + S4U 로그온 유형 -> 세션 0 에서 실행되므로
+     콘솔 창이 전혀 뜨지 않는다. (-WindowStyle Hidden 은 창이 깜빡일 수 있음)
+   - -Mode BackupNow (상주 감시가 아니라 1회 실행). 매 5분 반복이 감시를 대신한다.
+     상주 프로세스가 없으므로 죽어도 다음 주기에 스스로 복구된다.
+
+ [트리거]
+   - 컴퓨터 시작 시
+   - 로그온 시
+   - 워크스테이션 잠금 해제 시
+   - 위 각각에 대해 5분 간격 무기한 반복
+
+ [사용법]  관리자 권한 PowerShell 에서
+   등록:     .\Register-AutoBackupTask.ps1
+   즉시실행: Start-ScheduledTask -TaskName 'AutoDriveBackup'
+   상태:     Get-ScheduledTask -TaskName 'AutoDriveBackup' | Get-ScheduledTaskInfo
+   해제:     Unregister-ScheduledTask -TaskName 'AutoDriveBackup' -Confirm:$false
+
+ ※ 이 파일도 UTF-8 with BOM 으로 저장할 것.
+====================================================================
+#>
+param(
+    [string]$TaskName        = 'AutoDriveBackup',
+    [string]$ScriptPath      = (Join-Path $PSScriptRoot 'AutoDriveBackup.ps1'),
+    [string]$BackupRoot      = 'D:\DriveBackup',
+    [int]$IntervalMinutes    = 5,
+    [string[]]$ExcludeDrives = @(),
+    [switch]$Mirror,
+    [switch]$UseInteractive   # S4U 등록이 실패할 때만 사용 (로그온 중에만 동작)
+)
+
+$ErrorActionPreference = 'Stop'
+
+---- 사전 검사 -----------------------------------------------------
+$id = [Security.Principal.WindowsIdentity]::GetCurrent()
+if (-not (New-Object Security.Principal.WindowsPrincipal $id).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "관리자 권한 PowerShell 에서 실행하세요." -ForegroundColor Red
+    exit 1
+}
+
+$resolved = (Resolve-Path -LiteralPath $ScriptPath -ErrorAction SilentlyContinue).Path
+if (-not $resolved) {
+    Write-Host "AutoDriveBackup.ps1 을 찾을 수 없습니다. -ScriptPath 로 지정하세요." -ForegroundColor Red
+    exit 1
+}
+$ScriptPath = $resolved
+
+등록 전에 구문 검사 - 깨진 스크립트를 스케줄러에 올리면 5분마다 조용히 실패만 반복한다
+$perr = $null
+[System.Management.Automation.Language.Parser]::ParseFile($ScriptPath, [ref]$null, [ref]$perr) | Out-Null
+if ($perr) {
+    Write-Host "스크립트에 구문 오류가 있어 등록을 중단합니다:" -ForegroundColor Red
+    $perr | ForEach-Object { Write-Host ("  {0}행: {1}" -f $.Extent.StartLineNumber, $.Message) }
+    exit 1
+}
+
+$head = [System.IO.File]::ReadAllBytes($ScriptPath)
+if ($head.Length -lt 3 -or -not ($head[0] -eq 239 -and $head[1] -eq 187 -and $head[2] -eq 191)) {
+    Write-Host "경고: UTF-8 BOM 이 없습니다. PowerShell 5.1 이 CP949 로 잘못 읽어 한글이 깨질 수 있습니다." -ForegroundColor Yellow
+}
+
+---- Action --------------------------------------------------------
+$argLine = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$ScriptPath" " +
+           "-Mode BackupNow -BackupRoot "$BackupRoot""
+if ($ExcludeDrives.Count) { $argLine += " -ExcludeDrives $($ExcludeDrives -join ',')" }
+if ($Mirror)              { $argLine += " -Mirror" }
+
+$action = New-ScheduledTaskAction `
+    -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
+    -Argument $argLine -WorkingDirectory (Split-Path $ScriptPath)
+
+---- 반복 설정(무기한) 및 트리거 생성 ---------------------------------------------
+1. 반복 패턴 CIM 객체 생성 (Duration을 설정하지 않으면 무기한 반복됨)
+$repObj = New-CimInstance -ClassName MSFT_TaskRepetitionPattern `
+                          -Namespace Root/Microsoft/Windows/TaskScheduler `
+                          -ClientOnly
+$repObj.Interval = "PT$($IntervalMinutes)M"  # 예: PT5M (5분 간격)
+
+$triggers = New-Object System.Collections.Generic.List[object]
+
+2. 부팅 트리거
+$tBoot = New-ScheduledTaskTrigger -AtStartup
+$tBoot.Delay = 'PT2M'
+$tBoot.Repetition = $repObj
+$triggers.Add($tBoot)
+
+3. 로그온 트리거
+$tLogon = New-ScheduledTaskTrigger -AtLogOn -User $userId
+$tLogon.Delay = 'PT1M'
+$tLogon.Repetition = $repObj
+$triggers.Add($tLogon)
+
+4. 잠금 해제 트리거
+try {
+    $cls = Get-CimClass -ClassName MSFT_TaskSessionStateChangeTrigger `
+                        -Namespace Root/Microsoft/Windows/TaskScheduler
+    $tUnlock = New-CimInstance -CimClass $cls -ClientOnly
+    $tUnlock.StateChange = 8  # SessionUnlock
+    $tUnlock.UserId      = $userId
+    $tUnlock.Enabled     = $true
+    $tUnlock.Repetition  = $repObj
+    $triggers.Add($tUnlock)
+} catch {
+    Write-Host "잠금 해제 트리거 생성 실패: $($.Exception.Message)" -ForegroundColor Yellow
+}
+
+$rep = New-InfiniteRepetition $IntervalMinutes
+
+$userId = "$env:USERDOMAIN\$env:USERNAME"
+
+$triggers = New-Object System.Collections.Generic.List[object]
+
+$tBoot = New-ScheduledTaskTrigger -AtStartup
+$tBoot.Delay = 'PT2M'            # 부팅 직후 디스크 혼잡 회피
+$triggers.Add($tBoot)
+
+$tLogon = New-ScheduledTaskTrigger -AtLogOn -User $userId
+$tLogon.Delay = 'PT1M'
+$triggers.Add($tLogon)
+
+잠금 해제 트리거는 cmdlet 에 없으므로 CIM 클래스로 직접 만든다 (StateChange 8 = SessionUnlock)
+try {
+    $cls = Get-CimClass -ClassName MSFT_TaskSessionStateChangeTrigger `
+                        -Namespace Root/Microsoft/Windows/TaskScheduler
+    $tUnlock = New-CimInstance -CimClass $cls -ClientOnly
+    $tUnlock.StateChange = 8
+    $tUnlock.UserId      = $userId
+    $tUnlock.Enabled     = $true
+    $triggers.Add($tUnlock)
+} catch {
+    Write-Host "잠금 해제 트리거 생성 실패(무시하고 계속): $($.Exception.Message)" -ForegroundColor Yellow
+}
+
+foreach ($t in $triggers) { $t.Repetition = $rep }
+
+---- Settings ------------------------------------------------------
+MultipleInstances = IgnoreNew 가 핵심.
+백업이 5분보다 오래 걸릴 때 프로세스가 겹쳐 쌓이는 것을 막는다.
+$settings = New-ScheduledTaskSettingsSet `
+    -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+    -StartWhenAvailable `
+    -MultipleInstances IgnoreNew `
+    -ExecutionTimeLimit (New-TimeSpan -Hours 4) `
+    -RestartCount 2 -RestartInterval (New-TimeSpan -Minutes 5) `
+    -Priority 7
+
+---- Principal -----------------------------------------------------
+$principal = if ($UseInteractive) {
+    New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Highest
+} else {
+    New-ScheduledTaskPrincipal -UserId $userId -LogonType S4U -RunLevel Highest
+}
+
+---- 등록 ----------------------------------------------------------
+$desc = "USB/외장 스토리지 자동 Git 백업 ($IntervalMinutes 분 주기)"
+try {
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $triggers `
+        -Principal $principal -Settings $settings -Force -Description $desc | Out-Null
+    $mode = if ($UseInteractive) { 'Interactive' } else { 'S4U' }
+} catch {
+    if ($UseInteractive) { throw }
+    Write-Host "S4U 등록 실패 - Interactive 로 재시도: $($_.Exception.Message)" -ForegroundColor Yellow
+    $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Highest
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $triggers `
+        -Principal $principal -Settings $settings -Force -Description $desc | Out-Null
+    $mode = 'Interactive'
+    Write-Host "Interactive 등록됨: 로그온 중에만 동작하고 창이 잠깐 보일 수 있습니다." -ForegroundColor Yellow
+}
+
+Write-Host "등록 완료: '$TaskName'" -ForegroundColor Green
+Write-Host "  로그온유형 : $mode (RunLevel Highest)"
+Write-Host "  실행       : powershell.exe $argLine"
+Write-Host "  주기       : $IntervalMinutes 분, 무기한"
+Write-Host "  트리거     : 컴퓨터 시작 / 로그온 / 잠금 해제"
+Write-Host "  중복 실행  : IgnoreNew"
+Write-Host ""
+Write-Host "시험 실행 : Start-ScheduledTask -TaskName '$TaskName'"
+Write-Host "실행 결과 : Get-ScheduledTask -TaskName '$TaskName' | Get-ScheduledTaskInfo"
+Write-Host "동작 로그 : Get-Content '$BackupRoot\_meta\watcher.log' -Tail 30"
+```
+
+[GEMINI]  (Sep 15, 2026, 03:26 AM):
+현재 스크립트에 두 가지 치명적인 문제가 있습니다.
+
+1. 과거 코드 중복 방치: 코드를 확인해보면 80~108줄에 새로 작성한 트리거 로직을 붙여넣으셨지만, 111줄부터 137줄 사이에 과거 코드(New-InfiniteRepetition 등)가 지워지지 않고 그대로 남아 있습니다. 이 상태로는 변수가 덮어씌워지거나 존재하지 않는 함수를 호출해 무조건 실패합니다.
+2. CIM 속성 주입 거부 (Interval 에러): PowerShell 5.1에서는 New-CimInstance -ClientOnly로 생성한 껍데기 객체에 "PT5M" 같은 문자열 형태의 Interval 값을 직접 주입하는 것을 타입 불일치로 거부합니다.
+
+해결 방안 및 구현 단계:
+
+CIM 객체를 억지로 조립하는 대신, New-ScheduledTaskTrigger -Once를 이용해 가짜 트리거를 하나 생성하되 -RepetitionDuration 파라미터를 아예 생략하는 방식을 씁니다. 파라미터를 생략하면 작업 스케줄러가 이를 '무기한'으로 자동 인식하며, 여기서 안전하게 생성된 .Repetition 객체만 빼내서 나머지 실제 트리거들에 일괄 적용하면 됩니다.
+
+스크립트 파일에서 80번 줄(# ---- 반복 설정(무기한) 및 트리거 생성 ----)부터 139번 줄(foreach ($t in $triggers) { $t.Repetition = $rep })까지를 전부 삭제하고, 아래 코드로 교체하십시오.
+
+```powershell
+---- 반복 설정(무기한) 및 트리거 생성 ---------------------------------------------
+$userId = "$env:USERDOMAIN\$env:USERNAME"
+$triggers = New-Object System.Collections.Generic.List[object]
+
+임시 트리거를 생성해 '무기한 반복(Duration 없음)'이 적용된 Repetition 객체만 추출
+$rep = (New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes)).Repetition
+
+1. 부팅 트리거
+$tBoot = New-ScheduledTaskTrigger -AtStartup
+$tBoot.Delay = 'PT2M'
+$tBoot.Repetition = $rep
+$triggers.Add($tBoot)
+
+2. 로그온 트리거
+$tLogon = New-ScheduledTaskTrigger -AtLogOn -User $userId
+$tLogon.Delay = 'PT1M'
+$tLogon.Repetition = $rep
+$triggers.Add($tLogon)
+
+3. 잠금 해제 트리거
+try {
+    $cls = Get-CimClass -ClassName MSFT_TaskSessionStateChangeTrigger -Namespace Root/Microsoft/Windows/TaskScheduler
+    $tUnlock = New-CimInstance -CimClass $cls -ClientOnly
+    $tUnlock.StateChange = 8  # SessionUnlock
+    $tUnlock.UserId      = $userId
+    $tUnlock.Enabled     = $true
+    $tUnlock.Repetition  = $rep
+    $triggers.Add($tUnlock)
+} catch {
+    Write-Host "잠금 해제 트리거 생성 실패(무시하고 계속): $($_.Exception.Message)" -ForegroundColor Yellow
+}
+```
+
+이 코드를 덮어쓰고 저장한 뒤, PowerShell에서 다시 .\Register-AutoBackupTask.ps1을 실행하여 오류 없이 스케줄러에 정상 등록되는지 확인해 주십시오. 성공적으로 등록되었다면, 실제 동작을 담당하는 AutoDriveBackup.ps1 로직(시스템 디렉터리 필터링 등) 수정으로 넘어가겠습니다.
+
+---
+Exported by AI Toolbox
